@@ -4,7 +4,7 @@ import { createProtectedLayout } from "components/protected-layout";
 const FamilyTreeLayout = ({ children }: { children: React.ReactNode }) => {
 	return (
 		<ReactFlowProvider>
-			<div className="w-screen h-screen">{children}</div>
+			<div className="w-full h-[calc(100vh-86px)]">{children}</div>
 		</ReactFlowProvider>
 	);
 };
