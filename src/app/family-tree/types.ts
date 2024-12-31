@@ -1,6 +1,8 @@
 export type FamilyMember = {
 	id: string;
 	name: string;
+	given_name?: string;
+	surname?: string;
 	birthDate?: string;
 	deathDate?: string;
 	sex?: string;
@@ -12,9 +14,9 @@ export type FamilyData = {
 		string,
 		{
 			id: string;
-			husbandId?: string;
-			wifeId?: string;
-			childrenIds: string[];
+			husband?: string;
+			wife?: string;
+			children: string[];
 		}
 	>;
 };
