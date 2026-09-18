@@ -95,6 +95,9 @@ The document id is derived from the file name, so `beltrami.json` becomes
 
 ## Data shape
 
+The types live in `src/lib/family/types.ts` and are shared by the app and the
+upload script.
+
 ```ts
 type FamilyData = {
   individuals: Record<string, FamilyMember>; // keyed by GEDCOM xref, e.g. "@I12@"
@@ -104,6 +107,18 @@ type FamilyData = {
     wife?: string;
     children: string[];
   }>;
+};
+
+type FamilyMember = {
+  id: string;
+  name: string;            // raw "Given /Surname/"
+  given_name?: string;
+  surname?: string;
+  sex?: string;
+  birth?: { date?: { raw: string } };
+  death?: { date?: { raw: string } };
+  child_of_families: string[];  // FAMC
+  spouse_in_families: string[]; // FAMS
 };
 ```
 
@@ -117,7 +132,7 @@ src/app            routes and layouts (App Router)
 src/components     UI components, one folder each
 src/contexts       auth context
 src/hooks          data-fetching hooks
-src/lib            Firebase auth and Firestore access
+src/lib            Firebase auth and Firestore access, family domain types
 src/helpers        config and pure helpers
 scripts            Node tooling (Firestore upload, uses firebase-admin)
 ```

@@ -1,8 +1,8 @@
 // scripts/firebase/upload-family-data.ts
 
 import type { Firestore } from "firebase-admin/firestore";
+import type { FamilyData } from "../../src/lib/family/types";
 import { FirebaseService } from "../services/firebase";
-import type { FamilyData } from "../types";
 import { getDocumentId, readFamilyTreeFile } from "../utils/file-utils";
 
 /**

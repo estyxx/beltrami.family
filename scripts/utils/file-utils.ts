@@ -2,7 +2,7 @@
 
 import * as fs from "node:fs";
 import * as path from "node:path";
-import type { FamilyData } from "../types";
+import type { FamilyData } from "../../src/lib/family/types";
 
 /**
  * Reads and parses a JSON file containing family tree data
