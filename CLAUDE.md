@@ -170,7 +170,6 @@ GEDCOM semantics to respect:
   parent's bottom and enter a child's top.
 - `FamilyNode` reads `data.name` (raw slashed GEDCOM name); the computed
   `label` is never used.
-- `@types/react` is v18 while React is v19.
 
 ## Roadmap (in order)
 
