@@ -1,6 +1,6 @@
 "use client";
-import type { FamilyData } from "app/family-tree/types";
 import { useAuth } from "contexts/user-context";
+import type { FamilyData } from "lib/family/types";
 import { getFamilyTreeData } from "lib/firestore";
 import { useEffect, useState } from "react";
 

@@ -1,6 +1,6 @@
-import type { FamilyData } from "app/family-tree/types";
-import type { DocumentData, Firestore } from "firebase/firestore";
+import type { Firestore } from "firebase/firestore";
 import { doc, getDoc, getFirestore } from "firebase/firestore";
+import type { FamilyData, FamilyMember } from "lib/family/types";
 
 // Initialize Firestore once as a module-level constant
 const db: Firestore = getFirestore();
@@ -21,7 +21,6 @@ function getFamilyTreeRef() {
 export async function getFamilyTreeData(): Promise<FamilyData | null> {
 	try {
 		const docRef = getFamilyTreeRef();
-		console.log(docRef);
 		const docSnap = await getDoc(docRef);
 
 		if (!docSnap.exists()) {
@@ -29,20 +28,68 @@ export async function getFamilyTreeData(): Promise<FamilyData | null> {
 			return null;
 		}
 
-		// Type assertion here is necessary as Firestore doesn't know our data structure
-		const data = docSnap.data() as DocumentData;
+		const data = docSnap.data();
 
-		// Add runtime type checking if needed
-		// This is optional but adds an extra layer of safety
 		if (!isValidFamilyData(data)) {
 			throw new Error("Invalid family tree data structure");
 		}
 
-		return data as FamilyData;
+		return data;
 	} catch (error) {
 		console.error("Error fetching family tree data:", error);
 		throw error;
 	}
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+	return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isStringArray(value: unknown): value is string[] {
+	return Array.isArray(value) && value.every((it) => typeof it === "string");
+}
+
+function isOptionalString(value: unknown): value is string | undefined {
+	return value === undefined || typeof value === "string";
+}
+
+/**
+ * A life event is optional, and so is its date; when present the raw GEDCOM
+ * string is what we render.
+ */
+function isValidLifeEvent(value: unknown): boolean {
+	if (value === undefined) return true;
+	if (!isRecord(value)) return false;
+	if (value.date === undefined) return true;
+
+	return isRecord(value.date) && typeof value.date.raw === "string";
+}
+
+function isValidFamilyMember(value: unknown): value is FamilyMember {
+	if (!isRecord(value)) return false;
+
+	return (
+		typeof value.id === "string" &&
+		typeof value.name === "string" &&
+		isOptionalString(value.given_name) &&
+		isOptionalString(value.surname) &&
+		isOptionalString(value.sex) &&
+		isValidLifeEvent(value.birth) &&
+		isValidLifeEvent(value.death) &&
+		isStringArray(value.child_of_families) &&
+		isStringArray(value.spouse_in_families)
+	);
+}
+
+function isValidFamily(value: unknown): boolean {
+	if (!isRecord(value)) return false;
+
+	return (
+		typeof value.id === "string" &&
+		isOptionalString(value.husband) &&
+		isOptionalString(value.wife) &&
+		isStringArray(value.children)
+	);
 }
 
 /**
@@ -51,14 +98,11 @@ export async function getFamilyTreeData(): Promise<FamilyData | null> {
  * @returns A boolean indicating whether the data matches our expected structure
  */
 function isValidFamilyData(data: unknown): data is FamilyData {
-	if (!data || typeof data !== "object") return false;
-
-	const candidate = data as Record<string, unknown>;
+	if (!isRecord(data)) return false;
+	if (!isRecord(data.individuals) || !isRecord(data.families)) return false;
 
 	return (
-		"individuals" in candidate &&
-		"families" in candidate &&
-		typeof candidate.individuals === "object" &&
-		typeof candidate.families === "object"
+		Object.values(data.individuals).every(isValidFamilyMember) &&
+		Object.values(data.families).every(isValidFamily)
 	);
 }

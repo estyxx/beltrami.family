@@ -1,5 +1,5 @@
 import { Handle, Position } from "@xyflow/react";
-import type { FamilyMember } from "app/family-tree/types";
+import type { FamilyMember } from "lib/family/types";
 
 export const FamilyNode = ({ data }: { data: FamilyMember }) => {
 	return (
@@ -12,9 +12,9 @@ export const FamilyNode = ({ data }: { data: FamilyMember }) => {
 			<strong className="block text-lg font-semibold text-gray-800">
 				{data.name}
 			</strong>
-			{data.birthDate && (
+			{data.birth?.date && (
 				<p className="text-sm text-gray-600">
-					<span className="font-medium">Birth:</span> {data.birthDate}
+					<span className="font-medium">Birth:</span> {data.birth.date.raw}
 				</p>
 			)}
 			<p className="text-sm text-gray-600">{data.sex === "M" ? "♂️" : "♀️"}</p>

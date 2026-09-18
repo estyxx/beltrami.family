@@ -55,8 +55,9 @@ src/
   contexts/            React contexts (user-context = auth)
   hooks/               custom hooks (use-family-tree fetches from Firestore)
   lib/                 side-effectful modules: auth (Firebase), firestore
+    family/            domain types shared by the app and scripts/
   helpers/             pure helpers and config (env var access lives here only)
-scripts/               Node-only tooling (Firestore upload); has its own types.ts
+scripts/               Node-only tooling (Firestore upload)
 public/                static assets
 ```
 
@@ -75,9 +76,10 @@ Path aliases are configured with `baseUrl: src`, so imports look like
   (`page.tsx`, `layout.tsx`).
 - Runtime data from Firestore is untrusted: validate with a type guard (see
   `isValidFamilyData`) rather than casting. If validation grows, move to `zod`.
-- Keep the domain types (`FamilyMember`, `FamilyData`) in **one** place and
-  import them from there. `scripts/types.ts` and `src/app/family-tree/types.ts`
-  currently duplicate and disagree; consolidate rather than add a third copy.
+- The domain types (`FamilyMember`, `FamilyData`) live in
+  `src/lib/family/types.ts` and nowhere else. App code imports them as
+  `lib/family/types`; `scripts/` uses a relative path, because the path
+  aliases only cover `src`. Never add a second copy.
 
 ### React and Next.js
 
@@ -123,6 +125,18 @@ type FamilyData = {
   individuals: Record<string, FamilyMember>; // keyed by GEDCOM xref, e.g. "@I12@"
   families: Record<string, { id: string; husband?: string; wife?: string; children: string[] }>;
 };
+
+type FamilyMember = {
+  id: string;
+  name: string;            // raw "Given /Surname/"
+  given_name?: string;
+  surname?: string;
+  sex?: string;
+  birth?: { date?: { raw: string } };
+  death?: { date?: { raw: string } };
+  child_of_families: string[];  // FAMC
+  spouse_in_families: string[]; // FAMS
+};
 ```
 
 GEDCOM semantics to respect:
@@ -155,8 +169,7 @@ GEDCOM semantics to respect:
   sources at top, ids that do not match). Parent→child edges should leave a
   parent's bottom and enter a child's top.
 - `FamilyNode` reads `data.name` (raw slashed GEDCOM name); the computed
-  `label` is never used, and `birthDate` is never populated because Rootsy does
-  not yet emit events.
+  `label` is never used.
 - `@types/react` is v18 while React is v19.
 
 ## Roadmap (in order)
