@@ -103,16 +103,23 @@ Path aliases are configured with `baseUrl: src`, so imports look like
 - Italian is the UI language of the private site. Keep user-facing strings in
   Italian; keep code, comments and commit messages in English.
 
-### Git
+## Commits and pull requests
 
-- Small, focused atomic commits, no prefix
-```
-Capitalized, short (70 chars or fewer) summary
+Keep it short. No walls of text.
 
-More detailed explanatory text, if necessary. Wrap it to about 72 characters
-or so. 
-```
-- Hooks run Biome and type-check on commit; do not bypass them with `--no-verify`.
+### Commits
+
+- Write a summary line, and preferably nothing else.
+- The summary is imperative, capitalised, 70 characters or fewer, with no full stop and no `feat:` or `fix:` prefix. It should complete "If merged, this commit will...". Example: `Show birth and death years on tree nodes`.
+- Add a body only when the reason isn't obvious from the summary. Then one or two short sentences on why, not what.
+
+### Pull request descriptions
+
+- Start with "In this PR" and say what changed and why, in one to three sentences.
+- If there are several distinct changes, add at most three short bullets.
+- No headings, no test plan, no file-by-file list, no filler.
+
+Example: "In this PR we parse birth and death events on individuals, so the tree can show years under each name."
 
 ## Domain model
 
