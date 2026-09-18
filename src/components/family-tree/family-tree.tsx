@@ -1,118 +1,81 @@
 "use client";
+import { useFamilyGraph } from "hooks/use-family-graph";
 import { useFamilyTree } from "hooks/use-family-tree";
-import { type FC, useCallback, useEffect } from "react";
+import { type FC, useCallback, useEffect, useMemo } from "react";
 import "@xyflow/react/dist/style.css";
 import {
 	Background,
-	type Connection,
 	Controls,
 	type Edge,
 	MiniMap,
-	type Node,
+	Panel,
 	ReactFlow,
-	addEdge,
 	useEdgesState,
 	useNodesState,
+	useReactFlow,
 } from "@xyflow/react";
-import { FamilyNode } from "components/family-tree";
+import type { FamilyGraphNode } from "lib/family/layout";
+import { FamilyJunction } from "./family-junction";
+import { FamilyNode } from "./family-node";
+import { PersonPanel } from "./person-panel";
 
-// Register custom node
 const nodeTypes = {
-	custom: FamilyNode,
+	person: FamilyNode,
+	family: FamilyJunction,
 };
 
 const FamilyTree: FC = () => {
 	const { familyData, loading, error } = useFamilyTree();
+	const graph = useFamilyGraph(familyData);
+	const { fitView } = useReactFlow();
 
-	const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
+	const [nodes, setNodes, onNodesChange] = useNodesState<FamilyGraphNode>([]);
 	const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
 
-	const onConnect = useCallback(
-		(params: Connection) => setEdges((eds) => addEdge(params, eds)),
-		[setEdges],
+	useEffect(() => {
+		setNodes(graph.nodes);
+		setEdges(graph.edges);
+	}, [graph, setNodes, setEdges]);
+
+	/** React Flow owns the selection; the panel follows the selected node. */
+	const selectPerson = useCallback(
+		(id: string | null) => {
+			setNodes((current) =>
+				current.map((node) =>
+					node.selected === (node.id === id)
+						? node
+						: { ...node, selected: node.id === id },
+				),
+			);
+		},
+		[setNodes],
 	);
 
-	// Transform familyData into nodes and edges when familyData updates
-	useEffect(() => {
-		if (!familyData) return;
+	/** A link in the panel can point off screen, so bring that person into view. */
+	const selectRelative = useCallback(
+		(id: string) => {
+			selectPerson(id);
+			fitView({ nodes: [{ id }], duration: 400, maxZoom: 1 });
+		},
+		[selectPerson, fitView],
+	);
 
-		const nodes: Node[] = [];
-		const edges: Edge[] = [];
-		const positions = new Map();
-		let currentX = 0;
-		let currentY = 0;
+	const closePanel = useCallback(() => selectPerson(null), [selectPerson]);
 
-		// Create nodes for each individual
-		for (const individual of Object.values(familyData?.individuals)) {
-			if (!positions.has(individual.id)) {
-				positions.set(individual.id, { x: currentX, y: currentY });
-				currentX += 250;
-				if (currentX > 1000) {
-					currentX = 0;
-					currentY += 200;
-				}
-			}
-
-			nodes.push({
-				id: individual.id,
-				type: "custom",
-				position: positions.get(individual.id),
-				data: {
-					...individual,
-					label: `${individual.given_name} ${individual.surname}`,
-				},
-			});
-		}
-
-		// Create edges for family relationships
-		for (const family of Object.values(familyData.families)) {
-			if (family.husband && family.wife) {
-				edges.push({
-					id: `${family.husband}-${family.wife}`,
-					source: family.husband,
-					target: family.wife,
-					type: "straight",
-					label: "Spouse",
-					animated: true,
-				});
-			}
-
-			if (family.children) {
-				for (const childId of family.children) {
-					if (family.husband) {
-						edges.push({
-							id: `${family.husband}-${childId}`,
-							source: family.husband,
-							target: childId,
-							type: "straight",
-							label: "Parent",
-						});
-					}
-
-					if (family.wife) {
-						edges.push({
-							id: `${family.wife}-${childId}`,
-							source: family.wife,
-							target: childId,
-							type: "straight",
-							label: "Parent",
-						});
-					}
-				}
-			}
-		}
-
-		setNodes(nodes);
-		setEdges(edges);
-	}, [familyData, setNodes, setEdges]);
+	const selectedId = useMemo(
+		() => nodes.find((node) => node.selected)?.id,
+		[nodes],
+	);
 
 	if (loading) {
-		return <div>Loading family tree...</div>;
+		return <div>Caricamento dell'albero genealogico...</div>;
 	}
 
 	if (error) {
-		return <div>Error loading family tree: {error.message}</div>;
+		return <div>Errore nel caricamento dell'albero: {error.message}</div>;
 	}
+
+	const selected = selectedId ? familyData?.individuals[selectedId] : undefined;
 
 	return (
 		<ReactFlow
@@ -121,19 +84,29 @@ const FamilyTree: FC = () => {
 			edges={edges}
 			onNodesChange={onNodesChange}
 			onEdgesChange={onEdgesChange}
-			onConnect={onConnect}
 			nodeTypes={nodeTypes}
+			nodesConnectable={false}
 			fitView
 		>
 			<Background gap={16} className="text-gray-300" />
 			<MiniMap
 				nodeStrokeColor={(node) =>
-					node.type === "custom" ? "#06b6d4" : "#000"
+					node.type === "person" ? "#06b6d4" : "#000"
 				}
-				nodeColor={(node) => (node.type === "custom" ? "#cffafe" : "#fff")}
+				nodeColor={(node) => (node.type === "person" ? "#cffafe" : "#fff")}
 				nodeBorderRadius={2}
 			/>
 			<Controls className="text-gray-500" />
+			{familyData && selected && (
+				<Panel position="top-right">
+					<PersonPanel
+						data={familyData}
+						person={selected}
+						onSelect={selectRelative}
+						onClose={closePanel}
+					/>
+				</Panel>
+			)}
 		</ReactFlow>
 	);
 };

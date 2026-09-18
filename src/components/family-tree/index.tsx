@@ -1,2 +1,4 @@
 export { default as FamilyTree } from "./family-tree";
+export { FamilyJunction } from "./family-junction";
 export { FamilyNode } from "./family-node";
+export { PersonPanel } from "./person-panel";

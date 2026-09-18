@@ -42,10 +42,11 @@ pnpm build              # production build; must pass before a PR is done
 pnpm lint               # biome check .
 pnpm format             # biome format .
 pnpm type-check         # tsc --noEmit
+pnpm test               # jest
 pnpm upload-tree ./data/beltrami.json   # push a Rootsy JSON export to Firestore
 ```
 
-Before declaring any task finished run `pnpm lint`, `pnpm type-check`. If you changed anything under `src/app` also run `pnpm build`.
+Before declaring any task finished run `pnpm lint`, `pnpm type-check` and `pnpm test`. If you changed anything under `src/app` also run `pnpm build` (it needs the `NEXT_PUBLIC_FIREBASE_*` variables, or prerendering `/` fails on Firebase config).
 
 ## Repository layout
 
@@ -176,22 +177,16 @@ GEDCOM semantics to respect:
 
 ## Known problems (as of September 2026)
 
-- Tree layout is a fixed 5-column grid in insertion order. Replace with a
-  generational layout (family-chart, or elkjs layered layout feeding React
-  Flow). The layout must be a pure function `FamilyData → { nodes, edges }`
-  living outside the component so it can be unit-tested.
-- `FamilyNode` handle positions and ids are inconsistent (targets at bottom,
-  sources at top, ids that do not match). Parent→child edges should leave a
-  parent's bottom and enter a child's top.
-- `FamilyNode` reads `data.name` (raw slashed GEDCOM name); the computed
-  `label` is never used.
+- `buildGraph` positions nodes on a plain generational grid and elkjs reorders
+  the rows afterwards. Elk only runs asynchronously, so the grid is what the
+  canvas shows for the first frames; it is deterministic but not pretty.
 
 ## Roadmap (in order)
 
 1. Fix data upstream in Rootsy (events, FAMS/FAMC, clean names), regenerate
    the JSON, re-upload.
 2. Consolidate types; write the `FamilyData → nodes/edges` transform with
-   tests; implement a real layout.
+   tests; implement a real layout. (done: `src/lib/family/layout.ts`)
 3. Dependency upgrades (Tailwind 4, Biome 2, latest Next/React/xyflow),
    one major at a time, each in its own PR, build green after each.
 4. Public site: home, cats demo tree with illustration and animation, GEDCOM
