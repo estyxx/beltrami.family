@@ -144,8 +144,6 @@ GEDCOM semantics to respect:
 - `scripts/firebase/upload-family-data.ts` needs
   `config/firebase/service-account.json`, which is git-ignored. Never commit
   credentials, never log their contents.
-- `src/lib/notion` and the `NOTION_*` config are dead code from an earlier
-  version; remove them when convenient, do not build on them.
 
 ## Known problems (as of September 2026)
 
