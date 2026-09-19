@@ -5,7 +5,10 @@ import type { FamilyData, FamilyMember } from "lib/family/types";
 type PersonPanelProps = {
 	data: FamilyData;
 	person: FamilyMember;
+	/** True when the tree is already drawn around this person. */
+	isFocus: boolean;
 	onSelect: (id: string) => void;
+	onFocus: (id: string) => void;
 	onClose: () => void;
 };
 
@@ -17,7 +20,9 @@ const SEX_LABELS: Record<string, string> = {
 export const PersonPanel = ({
 	data,
 	person,
+	isFocus,
 	onSelect,
+	onFocus,
 	onClose,
 }: PersonPanelProps) => {
 	const { parents, partners, children } = getRelatives(data, person.id);
@@ -43,6 +48,16 @@ export const PersonPanel = ({
 				<Detail label="Morte" value={person.death?.date?.raw} />
 				<Detail label="Sesso" value={SEX_LABELS[person.sex ?? ""]} />
 			</dl>
+
+			{!isFocus && (
+				<button
+					type="button"
+					onClick={() => onFocus(person.id)}
+					className="mt-3 w-full rounded border border-cyan-600 px-2 py-1 text-sm text-cyan-700 hover:bg-cyan-50"
+				>
+					Centra l'albero qui
+				</button>
+			)}
 
 			<Relatives label="Genitori" people={parents} onSelect={onSelect} />
 			<Relatives label="Partner" people={partners} onSelect={onSelect} />

@@ -1,7 +1,7 @@
 "use client";
 import { useFamilyGraph } from "hooks/use-family-graph";
 import { useFamilyTree } from "hooks/use-family-tree";
-import { type FC, useCallback, useEffect, useMemo } from "react";
+import { type FC, useCallback, useEffect, useMemo, useState } from "react";
 import "@xyflow/react/dist/style.css";
 import {
 	Background,
@@ -14,10 +14,16 @@ import {
 	useNodesState,
 	useReactFlow,
 } from "@xyflow/react";
+import {
+	DEFAULT_FOCUS_OPTIONS,
+	type FocusOptions,
+	pickDefaultFocus,
+} from "lib/family/focus";
 import type { FamilyGraphNode } from "lib/family/layout";
 import { FamilyJunction } from "./family-junction";
 import { FamilyNode } from "./family-node";
 import { PersonPanel } from "./person-panel";
+import { TreeControls } from "./tree-controls";
 
 const nodeTypes = {
 	person: FamilyNode,
@@ -26,8 +32,20 @@ const nodeTypes = {
 
 const FamilyTree: FC = () => {
 	const { familyData, loading, error } = useFamilyTree();
-	const graph = useFamilyGraph(familyData);
 	const { fitView } = useReactFlow();
+
+	const [focusId, setFocusId] = useState<string | null>(null);
+	const [options, setOptions] = useState<Required<FocusOptions>>(
+		DEFAULT_FOCUS_OPTIONS,
+	);
+
+	// Somebody has to be at the centre before anyone has chosen.
+	const defaultFocus = useMemo(
+		() => (familyData ? pickDefaultFocus(familyData) : undefined),
+		[familyData],
+	);
+	const focus = focusId ?? defaultFocus ?? null;
+	const graph = useFamilyGraph(familyData, focus ?? null, options);
 
 	const [nodes, setNodes, onNodesChange] = useNodesState<FamilyGraphNode>([]);
 	const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
@@ -51,13 +69,21 @@ const FamilyTree: FC = () => {
 		[setNodes],
 	);
 
-	/** A link in the panel can point off screen, so bring that person into view. */
+	/**
+	 * A relative in the panel may be outside the view: drawn, so bring them into
+	 * sight; left out, so draw the tree around them instead.
+	 */
 	const selectRelative = useCallback(
 		(id: string) => {
-			selectPerson(id);
-			fitView({ nodes: [{ id }], duration: 400, maxZoom: 1 });
+			if (nodes.some((node) => node.id === id)) {
+				selectPerson(id);
+				fitView({ nodes: [{ id }], duration: 400, maxZoom: 1 });
+				return;
+			}
+
+			setFocusId(id);
 		},
-		[selectPerson, fitView],
+		[nodes, selectPerson, fitView],
 	);
 
 	const closePanel = useCallback(() => selectPerson(null), [selectPerson]);
@@ -76,6 +102,7 @@ const FamilyTree: FC = () => {
 	}
 
 	const selected = selectedId ? familyData?.individuals[selectedId] : undefined;
+	const shown = nodes.filter((node) => node.type === "person").length;
 
 	return (
 		<ReactFlow
@@ -97,12 +124,26 @@ const FamilyTree: FC = () => {
 				nodeBorderRadius={2}
 			/>
 			<Controls className="text-gray-500" />
+			{familyData && (
+				<Panel position="top-left">
+					<TreeControls
+						data={familyData}
+						focus={focus ? familyData.individuals[focus] : undefined}
+						options={options}
+						shown={shown}
+						onFocus={setFocusId}
+						onOptionsChange={setOptions}
+					/>
+				</Panel>
+			)}
 			{familyData && selected && (
 				<Panel position="top-right">
 					<PersonPanel
 						data={familyData}
 						person={selected}
+						isFocus={selected.id === focus}
 						onSelect={selectRelative}
+						onFocus={setFocusId}
 						onClose={closePanel}
 					/>
 				</Panel>

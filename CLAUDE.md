@@ -61,7 +61,8 @@ src/
   contexts/            React contexts (user-context = auth)
   hooks/               custom hooks (use-family-tree picks the data source)
   lib/                 side-effectful modules: auth (Firebase), firestore
-    family/            domain types shared by the app and scripts/, validation
+    family/            domain types shared by the app and scripts/, validation,
+                       the focus selection and the layout transform
     local-tree/        local JSON export: server reads the file, client fetches
                        it from /api/family-tree
   helpers/             pure helpers and config (env var access lives here only)
@@ -187,6 +188,9 @@ GEDCOM semantics to respect:
 - `buildGraph` positions nodes on a plain generational grid and elkjs reorders
   the rows afterwards. Elk only runs asynchronously, so the grid is what the
   canvas shows for the first frames; it is deterministic but not pretty.
+- The canvas draws the tree around one person (`lib/family/focus.ts`), because a
+  whole export in one layout is unreadable. Nobody knows which individual the
+  signed-in user is, so the view opens on whoever has the most descendants.
 
 ## Roadmap (in order)
 
@@ -199,6 +203,8 @@ GEDCOM semantics to respect:
 4. Public site: home, cats demo tree with illustration and animation, GEDCOM
    explainer. Private site remains behind auth.
 5. Person detail panel, search, pedigree/descendant views, accessibility pass.
+   (done: the panel, search, and the view focused on one person; left: the
+   pedigree and descendant views and the accessibility pass)
 
 When in doubt, prefer the smallest change that leaves the codebase easier to
 read than you found it.
