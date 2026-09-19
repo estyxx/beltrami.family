@@ -1,5 +1,5 @@
 import type { FamilyData } from "lib/family/types";
-import { isValidFamilyData } from "lib/family/validation";
+import { assertFamilyData } from "lib/family/validation";
 
 /**
  * Fetches the family tree from the local JSON export, through the API route
@@ -18,9 +18,7 @@ export async function getLocalFamilyTreeData(): Promise<FamilyData | null> {
 
 	const data: unknown = await response.json();
 
-	if (!isValidFamilyData(data)) {
-		throw new Error("Invalid family tree data structure");
-	}
+	assertFamilyData(data, "/api/family-tree");
 
 	return data;
 }

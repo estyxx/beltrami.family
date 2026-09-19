@@ -42,10 +42,11 @@ pnpm build              # production build; must pass before a PR is done
 pnpm lint               # biome check .
 pnpm format             # biome format .
 pnpm type-check         # tsc --noEmit
+pnpm test               # jest
 pnpm upload-tree ./data/beltrami.json   # push a Rootsy JSON export to Firestore
 ```
 
-Before declaring any task finished run `pnpm lint`, `pnpm type-check`. If you changed anything under `src/app` also run `pnpm build`.
+Before declaring any task finished run `pnpm lint`, `pnpm type-check` and `pnpm test`. If you changed anything under `src/app` also run `pnpm build` (it needs the `NEXT_PUBLIC_FIREBASE_*` variables, or prerendering `/` fails on Firebase config).
 
 ## Repository layout
 
@@ -81,9 +82,13 @@ Path aliases are configured with `baseUrl: src`, so imports look like
 - Prefer `type` over `interface` except when declaration merging is needed.
 - Export named symbols. Default exports only where Next.js requires them
   (`page.tsx`, `layout.tsx`).
-- Runtime data is untrusted, whatever the source: validate with a type guard
-  (`isValidFamilyData` in `src/lib/family/validation.ts`) rather than casting.
-  If validation grows, move to `zod`.
+- Runtime data is untrusted, whatever the source: validate it rather than
+  casting, with `src/lib/family/validation.ts`. Use `assertFamilyData(data,
+  source)` where the data is about to be used: it narrows the type and throws
+  naming every bad path (`individuals["@I12@"].birth.date.raw`) and the type
+  found there, never the value, because the message reaches logs and API
+  responses. `isValidFamilyData` is the plain boolean guard. If validation
+  grows, move to `zod`.
 - The domain types (`FamilyMember`, `FamilyData`) live in
   `src/lib/family/types.ts` and nowhere else. App code imports them as
   `lib/family/types`; `scripts/` uses a relative path, because the path
@@ -144,11 +149,11 @@ type FamilyData = {
 type FamilyMember = {
   id: string;
   name: string;            // raw "Given /Surname/"
-  given_name?: string;
-  surname?: string;
-  sex?: string;
-  birth?: { date?: { raw: string } };
-  death?: { date?: { raw: string } };
+  given_name?: string | null;
+  surname?: string | null;
+  sex?: string | null;
+  birth?: { date?: { raw: string } | null } | null;
+  death?: { date?: { raw: string } | null } | null;
   child_of_families: string[];  // FAMC
   spouse_in_families: string[]; // FAMS
 };
@@ -163,6 +168,9 @@ GEDCOM semantics to respect:
   are a partner in. Do not conflate the two.
 - Names arrive as `Given /Surname/`; empty parts are valid (`Deanna //`,
   `/Manghi/`). Render given + surname, never the raw slashed string.
+- An empty part reaches us as `null`, because Rootsy emits Python `None`. Every
+  optional field can be `null`; treat it as absent, never as a problem. `id`,
+  `name` and the two family lists are the only fields that must be present.
 - Dates can be qualified (`ABT 1890`, `BET 1900 AND 1910`, `1890`). Treat them
   as strings for display unless a proper date type exists upstream in Rootsy.
 
@@ -176,22 +184,16 @@ GEDCOM semantics to respect:
 
 ## Known problems (as of September 2026)
 
-- Tree layout is a fixed 5-column grid in insertion order. Replace with a
-  generational layout (family-chart, or elkjs layered layout feeding React
-  Flow). The layout must be a pure function `FamilyData → { nodes, edges }`
-  living outside the component so it can be unit-tested.
-- `FamilyNode` handle positions and ids are inconsistent (targets at bottom,
-  sources at top, ids that do not match). Parent→child edges should leave a
-  parent's bottom and enter a child's top.
-- `FamilyNode` reads `data.name` (raw slashed GEDCOM name); the computed
-  `label` is never used.
+- `buildGraph` positions nodes on a plain generational grid and elkjs reorders
+  the rows afterwards. Elk only runs asynchronously, so the grid is what the
+  canvas shows for the first frames; it is deterministic but not pretty.
 
 ## Roadmap (in order)
 
 1. Fix data upstream in Rootsy (events, FAMS/FAMC, clean names), regenerate
    the JSON, re-upload.
 2. Consolidate types; write the `FamilyData → nodes/edges` transform with
-   tests; implement a real layout.
+   tests; implement a real layout. (done: `src/lib/family/layout.ts`)
 3. Dependency upgrades (Tailwind 4, Biome 2, latest Next/React/xyflow),
    one major at a time, each in its own PR, build green after each.
 4. Public site: home, cats demo tree with illustration and animation, GEDCOM
