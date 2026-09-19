@@ -27,7 +27,11 @@ committed to the repo, and never bundled into the public pages.
 - `firebase-admin` only in `scripts/` (Node, never shipped to the browser)
 - Biome for lint and format (tabs, double quotes)
 - lefthook for git hooks (installed on `pnpm install` via `prepare`)
-- Package manager: **pnpm**. Never use npm or yarn; never commit another lockfile.
+- Package manager: **pnpm** 12.4.2, pinned by `packageManager` in `package.json`
+  and `.tool-versions`. Never use npm or yarn; never commit another lockfile.
+- pnpm settings live in `pnpm-workspace.yaml`, not the `pnpm` key of
+  `package.json`, which pnpm 12 ignores. A new dependency with a postinstall
+  script fails the install until it is added to `allowBuilds` there.
 
 ## Commands
 

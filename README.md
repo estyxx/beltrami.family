@@ -37,7 +37,9 @@ flowchart LR
 
 ## Getting started
 
-Requirements: Node 22+, pnpm.
+Requirements: Node 22.14+ and pnpm 12.4.2, both pinned in `.tool-versions`.
+`package.json` carries a `packageManager` field, so Corepack picks up the
+right pnpm on its own (`corepack enable`).
 
 ```sh
 pnpm install

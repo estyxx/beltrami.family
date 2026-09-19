@@ -1,0 +1,8 @@
+# Build scripts pnpm is allowed to run. pnpm 12 fails the install with
+# ERR_PNPM_IGNORED_BUILDS unless every dependency with one is listed here.
+allowBuilds:
+  '@biomejs/biome': true
+  lefthook: true
+  pnpm: true
+  protobufjs: true
+  sharp: true
