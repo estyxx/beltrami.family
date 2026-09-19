@@ -2,6 +2,9 @@
 # ERR_PNPM_IGNORED_BUILDS unless every dependency with one is listed here.
 allowBuilds:
   '@biomejs/biome': true
+  # Bakes $FIREBASE_WEBAPP_CONFIG into the package. We configure Firebase
+  # through NEXT_PUBLIC_FIREBASE_* instead, so the shipped default will do.
+  '@firebase/util': false
   lefthook: true
   pnpm: true
   protobufjs: true
