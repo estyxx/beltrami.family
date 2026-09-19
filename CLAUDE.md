@@ -82,9 +82,13 @@ Path aliases are configured with `baseUrl: src`, so imports look like
 - Prefer `type` over `interface` except when declaration merging is needed.
 - Export named symbols. Default exports only where Next.js requires them
   (`page.tsx`, `layout.tsx`).
-- Runtime data is untrusted, whatever the source: validate with a type guard
-  (`isValidFamilyData` in `src/lib/family/validation.ts`) rather than casting.
-  If validation grows, move to `zod`.
+- Runtime data is untrusted, whatever the source: validate it rather than
+  casting, with `src/lib/family/validation.ts`. Use `assertFamilyData(data,
+  source)` where the data is about to be used: it narrows the type and throws
+  naming every bad path (`individuals["@I12@"].birth.date.raw`) and the type
+  found there, never the value, because the message reaches logs and API
+  responses. `isValidFamilyData` is the plain boolean guard. If validation
+  grows, move to `zod`.
 - The domain types (`FamilyMember`, `FamilyData`) live in
   `src/lib/family/types.ts` and nowhere else. App code imports them as
   `lib/family/types`; `scripts/` uses a relative path, because the path

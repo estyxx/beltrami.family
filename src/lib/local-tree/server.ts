@@ -3,7 +3,7 @@ import path from "node:path";
 
 import { localFamilyDataPath } from "helpers/config";
 import type { FamilyData } from "lib/family/types";
-import { isValidFamilyData } from "lib/family/validation";
+import { assertFamilyData } from "lib/family/validation";
 
 /**
  * Reads the Rootsy JSON export pointed at by `NEXT_PUBLIC_LOCAL_FAMILY_DATA_PATH`.
@@ -29,9 +29,7 @@ export async function readLocalFamilyData(): Promise<FamilyData> {
 		);
 	}
 
-	if (!isValidFamilyData(data)) {
-		throw new Error(`Invalid family tree data in ${localFamilyDataPath}`);
-	}
+	assertFamilyData(data, localFamilyDataPath);
 
 	return data;
 }

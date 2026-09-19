@@ -1,6 +1,9 @@
 import { doc, getDoc, getFirestore } from "firebase/firestore";
 import type { FamilyData } from "lib/family/types";
-import { isValidFamilyData } from "lib/family/validation";
+import { assertFamilyData } from "lib/family/validation";
+
+const FAMILY_TREE_COLLECTION = "familyTrees";
+const FAMILY_TREE_DOCUMENT = "beltrami";
 
 /**
  * Gets the document reference for a user's family tree
@@ -9,7 +12,7 @@ import { isValidFamilyData } from "lib/family/validation";
 function getFamilyTreeRef() {
 	// Resolved lazily: the Firebase app is initialised by `lib/auth`, so asking
 	// for Firestore at import time would depend on module evaluation order.
-	return doc(getFirestore(), "familyTrees", "beltrami");
+	return doc(getFirestore(), FAMILY_TREE_COLLECTION, FAMILY_TREE_DOCUMENT);
 }
 
 /**
@@ -29,9 +32,7 @@ export async function getFamilyTreeData(): Promise<FamilyData | null> {
 
 		const data = docSnap.data();
 
-		if (!isValidFamilyData(data)) {
-			throw new Error("Invalid family tree data structure");
-		}
+		assertFamilyData(data, `${FAMILY_TREE_COLLECTION}/${FAMILY_TREE_DOCUMENT}`);
 
 		return data;
 	} catch (error) {
