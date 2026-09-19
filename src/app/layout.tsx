@@ -1,5 +1,4 @@
 import "app/globals.css";
-import "tailwindcss/tailwind.css";
 
 import { NavBar } from "components/navbar";
 import { AuthUserProvider } from "contexts/user-context";

@@ -34,7 +34,7 @@ export const NavBar = () => {
 					<button
 						type="button"
 						onClick={() => setIsOpen(!isOpen)}
-						className="flex items-center px-3 py-2 border rounded text-teal-lighter border-teal-light hover:text-white hover:border-white"
+						className="flex items-center px-3 py-2 border rounded-sm text-teal-lighter border-teal-light hover:text-white hover:border-white"
 					>
 						<svg
 							className="w-3 h-3 fill-current"
@@ -52,7 +52,7 @@ export const NavBar = () => {
 						"lex-grow w-full sm:flex sm:items-center sm:w-auto",
 					)}
 				>
-					<div className="text-sm sm:flex-grow">
+					<div className="text-sm sm:grow">
 						{/* <a
               className="block mt-4 mr-4 no-underline sm:inline-block sm:mt-0 text-teal-lighter hover:text-white"
             >

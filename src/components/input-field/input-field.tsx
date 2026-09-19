@@ -37,7 +37,7 @@ const InputField: FC<InputFieldProps> = ({
 				aria-describedby={error ? `${id}-error` : undefined}
 				aria-invalid={!!error}
 				required={required}
-				className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring focus:ring-blue-500 ${
+				className={`w-full px-3 py-2 border rounded-md shadow-xs focus:outline-hidden focus:ring-3 focus:ring-blue-500 ${
 					error ? "border-red-500" : "border-gray-300"
 				}`}
 			/>

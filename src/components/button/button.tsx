@@ -15,7 +15,7 @@ const Button: FC<ButtonProps> = ({
 	...props
 }) => {
 	const baseStyles =
-		"inline-block font-bold rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2";
+		"inline-block font-bold rounded-md focus:outline-hidden focus:ring-2 focus:ring-offset-2";
 
 	const variantStyles = {
 		primary:

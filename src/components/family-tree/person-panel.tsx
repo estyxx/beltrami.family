@@ -53,7 +53,7 @@ export const PersonPanel = ({
 				<button
 					type="button"
 					onClick={() => onFocus(person.id)}
-					className="mt-3 w-full rounded border border-cyan-600 px-2 py-1 text-sm text-cyan-700 hover:bg-cyan-50"
+					className="mt-3 w-full rounded-sm border border-cyan-600 px-2 py-1 text-sm text-cyan-700 hover:bg-cyan-50"
 				>
 					Centra l'albero qui
 				</button>

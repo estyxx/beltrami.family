@@ -35,7 +35,16 @@
 				"noUnknownAtRules": {
 					"level": "error",
 					"options": {
-						"ignore": ["tailwind"]
+						"ignore": [
+							"apply",
+							"custom-variant",
+							"plugin",
+							"reference",
+							"source",
+							"theme",
+							"utility",
+							"variant"
+						]
 					}
 				}
 			}
