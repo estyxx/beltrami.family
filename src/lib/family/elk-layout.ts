@@ -11,6 +11,8 @@ import {
 	DEFAULT_LAYOUT,
 	type FamilyGraph,
 	type LayoutOptions,
+	alignJunctions,
+	centreParents,
 } from "lib/family/layout";
 
 let elk: Promise<ELK> | undefined;
@@ -38,6 +40,14 @@ export async function layoutWithElk(
 		layoutOptions: {
 			"elk.algorithm": "layered",
 			"elk.direction": "DOWN",
+			// Both interactive strategies read the structure off the positions we
+			// pass in: the row is the generation, and the order within a row keeps
+			// couples together. Left to itself elk would rank by longest path and
+			// reorder the rows, which splits couples and drops a childless person a
+			// row away from their own cousins. What elk adds is the spacing and the
+			// centring of parents over their children.
+			"elk.layered.layering.strategy": "INTERACTIVE",
+			"elk.layered.considerModelOrder.strategy": "NODES_AND_EDGES",
 			"elk.layered.spacing.nodeNodeBetweenLayers": String(layout.rowGap),
 			"elk.spacing.nodeNode": String(layout.columnGap),
 			"elk.layered.nodePlacement.strategy": "BRANDES_KOEPF",
@@ -46,6 +56,10 @@ export async function layoutWithElk(
 			id: node.id,
 			width: node.width ?? layout.nodeWidth,
 			height: node.height ?? layout.nodeHeight,
+			// The grid position is the hint: its row is the generation, and its
+			// column is the order elk starts from when it untangles the rows.
+			x: node.position.x,
+			y: node.position.y,
 		})),
 		edges: graph.edges.map((edge) => ({
 			id: edge.id,
@@ -62,11 +76,13 @@ export async function layoutWithElk(
 		]),
 	);
 
-	return {
+	const spaced: FamilyGraph = {
 		nodes: graph.nodes.map((node) => {
 			const position = positions.get(node.id);
 			return position ? { ...node, position } : node;
 		}),
 		edges: graph.edges,
 	};
+
+	return alignJunctions(centreParents(spaced, options), options);
 }

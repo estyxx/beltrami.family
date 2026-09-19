@@ -1,18 +1,39 @@
 "use client";
 import { layoutWithElk } from "lib/family/elk-layout";
+import {
+	EMPTY_FAMILY_DATA,
+	type FocusOptions,
+	selectRelatives,
+} from "lib/family/focus";
 import { EMPTY_GRAPH, type FamilyGraph, buildGraph } from "lib/family/layout";
 import type { FamilyData } from "lib/family/types";
 import { useEffect, useMemo, useState } from "react";
 
 /**
- * Turns family data into a React Flow graph. The generational grid from
- * `buildGraph` shows first and is replaced by the elk layout once it resolves,
- * because elk only runs asynchronously.
+ * Turns the tree around one person into a React Flow graph.
+ *
+ * The generational grid from `buildGraph` shows first and is replaced by the
+ * elk layout once it resolves, because elk only runs asynchronously.
+ *
+ * @param familyData - The whole tree
+ * @param focusId - The person the view is built around
+ * @param options - How far the view reaches in each direction
  */
-export function useFamilyGraph(familyData: FamilyData | null): FamilyGraph {
+export function useFamilyGraph(
+	familyData: FamilyData | null,
+	focusId: string | null,
+	options: FocusOptions,
+): FamilyGraph {
+	const visible = useMemo(() => {
+		if (!familyData) return EMPTY_FAMILY_DATA;
+		if (!focusId) return familyData;
+
+		return selectRelatives(familyData, focusId, options);
+	}, [familyData, focusId, options]);
+
 	const grid = useMemo(
-		() => (familyData ? buildGraph(familyData) : EMPTY_GRAPH),
-		[familyData],
+		() => (visible === EMPTY_FAMILY_DATA ? EMPTY_GRAPH : buildGraph(visible)),
+		[visible],
 	);
 	const [graph, setGraph] = useState<FamilyGraph>(grid);
 

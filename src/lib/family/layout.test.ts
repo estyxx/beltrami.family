@@ -161,6 +161,34 @@ describe("buildGraph", () => {
 		}
 	});
 
+	it("hangs a couple above the middle of their children", () => {
+		const { nodes } = buildGraph(threeGenerations());
+		const centre = (id: string) => {
+			const node = nodes.find((item) => item.id === id);
+			if (!node) throw new Error(`missing ${id}`);
+			return node.position.x + (node.width ?? 0) / 2;
+		};
+
+		// Carlo and Deanna sit over Luca and Sofia.
+		const parents = (centre("@I3@") + centre("@I5@")) / 2;
+		const children = (centre("@I6@") + centre("@I7@")) / 2;
+
+		expect(parents).toBeCloseTo(children);
+	});
+
+	it("puts a junction between the two partners", () => {
+		const { nodes } = buildGraph(threeGenerations());
+		const centre = (id: string) => {
+			const node = nodes.find((item) => item.id === id);
+			if (!node) throw new Error(`missing ${id}`);
+			return node.position.x + (node.width ?? 0) / 2;
+		};
+
+		expect(centre(junctionId("@F2@"))).toBeCloseTo(
+			(centre("@I3@") + centre("@I5@")) / 2,
+		);
+	});
+
 	it("returns an empty graph for empty data", () => {
 		expect(buildGraph({ individuals: {}, families: {} })).toEqual({
 			nodes: [],

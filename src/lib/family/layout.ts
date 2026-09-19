@@ -171,6 +171,72 @@ function junctionGeneration(
 	return 0;
 }
 
+/** The families an individual is a partner in, skipping unknown references. */
+function familiesOf(data: FamilyData, member: FamilyMember): Family[] {
+	return member.spouse_in_families
+		.map((id) => data.families[id])
+		.filter((family): family is Family => family !== undefined);
+}
+
+/**
+ * Orders every generation so that couples stand next to each other and children
+ * sit under their parents, which is what makes siblings and cousins read as
+ * groups. Elk starts from this order when it untangles the rows, so the order
+ * matters even though elk sets the final spacing.
+ */
+function orderGenerations(
+	data: FamilyData,
+	generations: Map<string, number>,
+): Map<string, number> {
+	const rows = new Map<number, string[]>();
+	const columns = new Map<string, number>();
+	const members = Object.values(data.individuals);
+
+	const generationOf = (id: string): number => generations.get(id) ?? 0;
+
+	const place = (member: FamilyMember): void => {
+		if (columns.has(member.id)) return;
+
+		const generation = generationOf(member.id);
+		const row = rows.get(generation) ?? [];
+		columns.set(member.id, row.length);
+		row.push(member.id);
+		rows.set(generation, row);
+
+		// A partner belongs beside them, as long as they share the row.
+		for (const family of familiesOf(data, member)) {
+			for (const partner of partnersOf(data, family)) {
+				if (generationOf(partner.id) === generation) place(partner);
+			}
+		}
+	};
+
+	const ordered = Array.from(
+		new Set(members.map((member) => generationOf(member.id))),
+	).sort((first, second) => first - second);
+
+	for (const generation of ordered) {
+		// Whoever their parents did not already pull in follows, in file order.
+		for (const member of members) {
+			if (generationOf(member.id) === generation) place(member);
+		}
+
+		// Then hand the next row down to this one's children.
+		for (const id of Array.from(rows.get(generation) ?? [])) {
+			const member = data.individuals[id];
+			if (!member) continue;
+
+			for (const family of familiesOf(data, member)) {
+				for (const child of childrenOf(data, family)) {
+					if (generationOf(child.id) === generation + 1) place(child);
+				}
+			}
+		}
+	}
+
+	return columns;
+}
+
 /**
  * Builds the React Flow graph for a family tree: one node per individual, one
  * invisible junction node per family, partner edges from each partner into the
@@ -182,44 +248,39 @@ export function buildGraph(
 ): FamilyGraph {
 	const layout = { ...DEFAULT_LAYOUT, ...options };
 	const generations = assignGenerations(data);
+	const columns = orderGenerations(data, generations);
 	const rowHeight = layout.nodeHeight + layout.rowGap;
+	const columnWidth = layout.nodeWidth + layout.columnGap;
 
 	const nodes: FamilyGraphNode[] = [];
 	const edges: Edge[] = [];
 
-	const personColumns = new Map<number, number>();
 	for (const member of Object.values(data.individuals)) {
 		const generation = generations.get(member.id) ?? 0;
-		const column = personColumns.get(generation) ?? 0;
-		personColumns.set(generation, column + 1);
+		const x = (columns.get(member.id) ?? 0) * columnWidth;
 
 		nodes.push({
 			id: member.id,
 			type: "person",
-			position: {
-				x: column * (layout.nodeWidth + layout.columnGap),
-				y: generation * rowHeight,
-			},
+			position: { x, y: generation * rowHeight },
 			width: layout.nodeWidth,
 			height: layout.nodeHeight,
 			data: { member, generation },
 		});
 	}
 
-	const junctionColumns = new Map<number, number>();
 	for (const family of Object.values(data.families)) {
 		const partners = partnersOf(data, family);
 		const children = childrenOf(data, family);
 		const generation = junctionGeneration(generations, partners, children);
-		const column = junctionColumns.get(generation) ?? 0;
-		junctionColumns.set(generation, column + 1);
 
 		const id = junctionId(family.id);
 		nodes.push({
 			id,
 			type: "family",
 			position: {
-				x: column * (layout.junctionSize + layout.columnGap),
+				// alignJunctions puts it between the people it joins, below.
+				x: 0,
 				// Halfway down the gap between the partners' row and the children's.
 				y:
 					generation * rowHeight +
@@ -257,5 +318,225 @@ export function buildGraph(
 		}
 	}
 
-	return { nodes, edges };
+	return alignJunctions(centreParents({ nodes, edges }, options), options);
+}
+
+/**
+ * Who hangs off each junction: the partners pointing into it, and the children
+ * hanging below it.
+ */
+function familyLinks(graph: FamilyGraph): {
+	partners: Map<string, FamilyGraphNode[]>;
+	children: Map<string, FamilyGraphNode[]>;
+} {
+	const nodeById = new Map(graph.nodes.map((node) => [node.id, node]));
+	const partners = new Map<string, FamilyGraphNode[]>();
+	const children = new Map<string, FamilyGraphNode[]>();
+
+	for (const edge of graph.edges) {
+		const from = nodeById.get(edge.source);
+		const into = nodeById.get(edge.target);
+
+		if (into?.type === "family" && from) {
+			partners.set(into.id, [...(partners.get(into.id) ?? []), from]);
+		}
+		if (from?.type === "family" && into) {
+			children.set(from.id, [...(children.get(from.id) ?? []), into]);
+		}
+	}
+
+	return { partners, children };
+}
+
+/** The middle of a set of nodes, or undefined when there are none. */
+function centreOf(
+	nodes: FamilyGraphNode[],
+	x: (node: FamilyGraphNode) => number,
+	fallbackWidth: number,
+): number | undefined {
+	if (nodes.length === 0) return undefined;
+
+	const total = nodes.reduce(
+		(sum, node) => sum + x(node) + (node.width ?? fallbackWidth) / 2,
+		0,
+	);
+
+	return total / nodes.length;
+}
+
+/**
+ * Hangs every couple above the middle of their children, working from the
+ * youngest generation upwards, and pushes apart anyone who would end up on top
+ * of somebody else.
+ *
+ * This is what makes the drawing read as a family tree. Elk gives the rows a
+ * sensible order and spacing, but it has no reason to keep a couple above their
+ * own children, so without this pass the lines run right across the canvas.
+ *
+ * @param graph - Nodes and edges, with the people already placed in rows
+ * @param options - Sizes and spacing, matching the ones used to place them
+ * @returns The same graph with the parents moved
+ */
+export function centreParents(
+	graph: FamilyGraph,
+	options: LayoutOptions = {},
+): FamilyGraph {
+	const layout = { ...DEFAULT_LAYOUT, ...options };
+	const { partners, children } = familyLinks(graph);
+	const moved = new Map<string, number>();
+
+	const xOf = (node: FamilyGraphNode): number =>
+		moved.get(node.id) ?? node.position.x;
+	const widthOf = (node: FamilyGraphNode): number =>
+		node.width ?? layout.nodeWidth;
+
+	// The junctions each person is a partner in, to find couples and children.
+	const junctionsOf = new Map<string, string[]>();
+	for (const [junction, people] of Array.from(partners)) {
+		for (const person of people) {
+			junctionsOf.set(person.id, [
+				...(junctionsOf.get(person.id) ?? []),
+				junction,
+			]);
+		}
+	}
+
+	const rows = new Map<number, FamilyGraphNode[]>();
+	for (const node of graph.nodes) {
+		if (node.type !== "person") continue;
+
+		rows.set(node.position.y, [...(rows.get(node.position.y) ?? []), node]);
+	}
+
+	const youngestFirst = Array.from(rows.keys()).sort(
+		(first, second) => second - first,
+	);
+
+	for (const y of youngestFirst) {
+		const row = (rows.get(y) ?? []).sort((a, b) => xOf(a) - xOf(b));
+		let previousRight = Number.NEGATIVE_INFINITY;
+
+		for (const unit of coupleUnits(row, junctionsOf, partners, xOf)) {
+			const left = Math.min(...unit.map(xOf));
+			const right = Math.max(...unit.map((node) => xOf(node) + widthOf(node)));
+
+			const theirChildren = unit
+				.flatMap((node) => junctionsOf.get(node.id) ?? [])
+				.flatMap((junction) => children.get(junction) ?? []);
+			const wanted =
+				centreOf(theirChildren, xOf, layout.nodeWidth) ?? (left + right) / 2;
+
+			const shift = Math.max(
+				wanted - (left + right) / 2,
+				previousRight + layout.columnGap - left,
+			);
+
+			for (const node of unit) moved.set(node.id, xOf(node) + shift);
+			previousRight = Math.max(
+				...unit.map((node) => xOf(node) + widthOf(node)),
+			);
+		}
+	}
+
+	return {
+		nodes: graph.nodes.map((node) => {
+			const x = moved.get(node.id);
+
+			return x === undefined
+				? node
+				: { ...node, position: { ...node.position, x } };
+		}),
+		edges: graph.edges,
+	};
+}
+
+/** Groups a row into couples that share a family, and everyone else alone. */
+function coupleUnits(
+	row: FamilyGraphNode[],
+	junctionsOf: Map<string, string[]>,
+	partners: Map<string, FamilyGraphNode[]>,
+	xOf: (node: FamilyGraphNode) => number,
+): FamilyGraphNode[][] {
+	const inRow = new Map(row.map((node) => [node.id, node]));
+	const taken = new Set<string>();
+	const units: FamilyGraphNode[][] = [];
+
+	for (const node of row) {
+		if (taken.has(node.id)) continue;
+
+		const unit = [node];
+		taken.add(node.id);
+
+		for (const junction of junctionsOf.get(node.id) ?? []) {
+			for (const partner of partners.get(junction) ?? []) {
+				if (taken.has(partner.id) || !inRow.has(partner.id)) continue;
+
+				unit.push(partner);
+				taken.add(partner.id);
+			}
+		}
+
+		units.push(unit.sort((a, b) => xOf(a) - xOf(b)));
+	}
+
+	return units;
+}
+
+/**
+ * Slides every junction to the middle of the people it joins, so a couple's two
+ * edges meet at a point between them, then nudges junctions that landed on the
+ * same spot apart. Runs on the grid and again on elk's positions, because both
+ * move the people around.
+ * @param graph - Nodes and edges, with the people already placed
+ * @param options - Sizes and spacing, matching the ones used to place the people
+ * @returns The same graph with the junctions moved
+ */
+export function alignJunctions(
+	graph: FamilyGraph,
+	options: LayoutOptions = {},
+): FamilyGraph {
+	const layout = { ...DEFAULT_LAYOUT, ...options };
+	const { partners, children } = familyLinks(graph);
+
+	type Placement = { id: string; x: number };
+	const rows = new Map<number, Placement[]>();
+	for (const node of graph.nodes) {
+		if (node.type !== "family") continue;
+
+		// Between the couple when there is one, otherwise above the children.
+		const anchors = partners.get(node.id) ?? children.get(node.id) ?? [];
+		const middle = centreOf(
+			anchors,
+			(anchor) => anchor.position.x,
+			layout.nodeWidth,
+		);
+		if (middle === undefined) continue;
+
+		const row = rows.get(node.position.y) ?? [];
+		row.push({ id: node.id, x: middle - layout.junctionSize / 2 });
+		rows.set(node.position.y, row);
+	}
+
+	const placed = new Map<string, number>();
+	const spacing = layout.junctionSize + layout.columnGap;
+	for (const row of Array.from(rows.values())) {
+		let previous = Number.NEGATIVE_INFINITY;
+
+		for (const placement of row.sort((first, second) => first.x - second.x)) {
+			const x = Math.max(placement.x, previous + spacing);
+			placed.set(placement.id, x);
+			previous = x;
+		}
+	}
+
+	return {
+		nodes: graph.nodes.map((node) => {
+			const x = placed.get(node.id);
+
+			return x === undefined
+				? node
+				: { ...node, position: { ...node.position, x } };
+		}),
+		edges: graph.edges,
+	};
 }
