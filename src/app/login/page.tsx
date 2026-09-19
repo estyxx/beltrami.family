@@ -1,11 +1,10 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useState } from "react";
-
 import { Button } from "components/button";
 import { InputField } from "components/input-field";
 import { useAuth } from "contexts/user-context";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useState } from "react";
 
 const FIREBASE_ERROR_MESSAGES: Record<string, string> = {
 	"auth/wrong-password":
@@ -32,7 +31,7 @@ const LoginForm = () => {
 		setError("");
 		event.preventDefault();
 		try {
-			const credentials = await login(email, password);
+			await login(email, password);
 			router.push(redirect);
 		} catch (error: unknown) {
 			console.error({ error });

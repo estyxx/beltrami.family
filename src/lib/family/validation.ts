@@ -76,9 +76,9 @@ function checkStringArray(
 		return;
 	}
 
-	value.forEach((item, index) =>
-		checkString(issues, `${path}[${index}]`, item),
-	);
+	value.forEach((item, index) => {
+		checkString(issues, `${path}[${index}]`, item);
+	});
 }
 
 /**

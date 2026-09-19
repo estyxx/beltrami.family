@@ -5,7 +5,7 @@ import {
 	type FocusOptions,
 	selectRelatives,
 } from "lib/family/focus";
-import { EMPTY_GRAPH, type FamilyGraph, buildGraph } from "lib/family/layout";
+import { buildGraph, EMPTY_GRAPH, type FamilyGraph } from "lib/family/layout";
 import type { FamilyData } from "lib/family/types";
 import { useEffect, useMemo, useState } from "react";
 

@@ -4,13 +4,13 @@
 import { initializeApp } from "firebase/app";
 
 import {
-	type User,
-	type UserCredential,
 	getAuth,
 	onAuthStateChanged,
 	sendPasswordResetEmail,
 	signInWithEmailAndPassword,
 	signOut,
+	type User,
+	type UserCredential,
 } from "firebase/auth";
 import { firebaseConfig } from "helpers/config";
 import { useCallback, useEffect, useState } from "react";

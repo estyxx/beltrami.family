@@ -1,5 +1,3 @@
-import React from "react";
-
 import { FamilyTree } from "components/family-tree";
 
 export default function FamilyTreePage() {

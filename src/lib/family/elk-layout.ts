@@ -8,11 +8,11 @@
 
 import type { ELK, ElkNode } from "elkjs/lib/elk-api";
 import {
+	alignJunctions,
+	centreParents,
 	DEFAULT_LAYOUT,
 	type FamilyGraph,
 	type LayoutOptions,
-	alignJunctions,
-	centreParents,
 } from "lib/family/layout";
 
 let elk: Promise<ELK> | undefined;

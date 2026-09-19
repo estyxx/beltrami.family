@@ -1,7 +1,6 @@
-import { NextResponse } from "next/server";
-
 import { localFamilyDataPath } from "helpers/config";
 import { readLocalFamilyData } from "lib/local-tree/server";
+import { NextResponse } from "next/server";
 
 /** The export is read from disk on every request, so never cache it. */
 export const dynamic = "force-dynamic";
