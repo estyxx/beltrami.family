@@ -149,11 +149,11 @@ type FamilyData = {
 type FamilyMember = {
   id: string;
   name: string;            // raw "Given /Surname/"
-  given_name?: string;
-  surname?: string;
-  sex?: string;
-  birth?: { date?: { raw: string } };
-  death?: { date?: { raw: string } };
+  given_name?: string | null;
+  surname?: string | null;
+  sex?: string | null;
+  birth?: { date?: { raw: string } | null } | null;
+  death?: { date?: { raw: string } | null } | null;
   child_of_families: string[];  // FAMC
   spouse_in_families: string[]; // FAMS
 };
@@ -168,6 +168,9 @@ GEDCOM semantics to respect:
   are a partner in. Do not conflate the two.
 - Names arrive as `Given /Surname/`; empty parts are valid (`Deanna //`,
   `/Manghi/`). Render given + surname, never the raw slashed string.
+- An empty part reaches us as `null`, because Rootsy emits Python `None`. Every
+  optional field can be `null`; treat it as absent, never as a problem. `id`,
+  `name` and the two family lists are the only fields that must be present.
 - Dates can be qualified (`ABT 1890`, `BET 1900 AND 1910`, `1890`). Treat them
   as strings for display unless a proper date type exists upstream in Rootsy.
 

@@ -47,7 +47,7 @@ export function getRelatives(data: FamilyData, id: string): Relatives {
 function push(
 	target: FamilyMember[],
 	data: FamilyData,
-	id: string | undefined,
+	id: string | null | undefined,
 	selfId: string,
 ): void {
 	if (!id || id === selfId) return;

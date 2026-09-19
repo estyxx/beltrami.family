@@ -14,7 +14,9 @@ export function formatName(member: FamilyMember): string {
 }
 
 /** The first four-or-three digit year in a GEDCOM date, if there is one. */
-export function formatYear(event: LifeEvent | undefined): string | undefined {
+export function formatYear(
+	event: LifeEvent | null | undefined,
+): string | undefined {
 	const raw = event?.date?.raw;
 	if (!raw) return undefined;
 

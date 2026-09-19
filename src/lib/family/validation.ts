@@ -18,8 +18,8 @@ export type ValidationIssue = {
 	message: string;
 };
 
-/** Enough to find the pattern in a broken export without flooding the log. */
-const MAX_REPORTED_ISSUES = 10;
+/** Enough kinds of problem to work from without flooding the log. */
+const MAX_REPORTED_KINDS = 10;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
 	return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -48,12 +48,17 @@ function checkString(
 	});
 }
 
+/** Optional fields are absent as `undefined` or, from Rootsy, as `null`. */
+function isAbsent(value: unknown): boolean {
+	return value === undefined || value === null;
+}
+
 function checkOptionalString(
 	issues: ValidationIssue[],
 	path: string,
 	value: unknown,
 ): void {
-	if (value === undefined) return;
+	if (isAbsent(value)) return;
 
 	checkString(issues, path, value);
 }
@@ -85,7 +90,7 @@ function checkLifeEvent(
 	path: string,
 	value: unknown,
 ): void {
-	if (value === undefined) return;
+	if (isAbsent(value)) return;
 
 	if (!isRecord(value)) {
 		issues.push({
@@ -95,7 +100,7 @@ function checkLifeEvent(
 		return;
 	}
 
-	if (value.date === undefined) return;
+	if (isAbsent(value.date)) return;
 
 	if (!isRecord(value.date)) {
 		issues.push({
@@ -200,18 +205,48 @@ export function collectFamilyDataIssues(data: unknown): ValidationIssue[] {
 	return issues;
 }
 
-/** The problems as one indented line each, capped so a log stays readable. */
-export function describeValidationIssues(issues: ValidationIssue[]): string {
-	const lines = issues
-		.slice(0, MAX_REPORTED_ISSUES)
-		.map(({ path, message }) =>
-			path ? `  ${path}: ${message}` : `  ${message}`,
-		);
+/**
+ * The same problem on 20 individuals is one thing to fix, so identical problems
+ * are reported once with a count and an example, not twenty times.
+ */
+function groupKey(issue: ValidationIssue): string {
+	const shape = issue.path
+		.replace(/\["[^"]*"\]/g, "[*]")
+		.replace(/\[\d+\]/g, "[*]");
 
-	const hidden = issues.length - lines.length;
-	if (hidden > 0) lines.push(`  ...and ${hidden} more`);
+	return `${shape}: ${issue.message}`;
+}
+
+/** The problems as one indented line per kind, capped so a log stays readable. */
+export function describeValidationIssues(issues: ValidationIssue[]): string {
+	const kinds = new Map<string, ValidationIssue[]>();
+	for (const issue of issues) {
+		const key = groupKey(issue);
+		const group = kinds.get(key);
+		if (group) group.push(issue);
+		else kinds.set(key, [issue]);
+	}
+
+	const lines = Array.from(kinds.values())
+		.slice(0, MAX_REPORTED_KINDS)
+		.map((group) => describeGroup(group));
+
+	const hidden = kinds.size - lines.length;
+	if (hidden > 0) lines.push(`  ...and ${hidden} more kinds of problem`);
 
 	return lines.join("\n");
+}
+
+function describeGroup(group: ValidationIssue[]): string {
+	// The group always holds at least the issue that created it.
+	const [first] = group;
+	const where = first.path ? `${first.path}: ` : "";
+
+	if (group.length === 1) return `  ${where}${first.message}`;
+
+	const shape = groupKey(first);
+
+	return `  ${shape} (${group.length} times, e.g. ${first.path})`;
 }
 
 /**

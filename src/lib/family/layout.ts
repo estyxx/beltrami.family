@@ -59,7 +59,7 @@ export function junctionId(familyId: string): string {
 
 function individual(
 	data: FamilyData,
-	id: string | undefined,
+	id: string | null | undefined,
 ): FamilyMember | undefined {
 	if (!id) return undefined;
 	return data.individuals[id];

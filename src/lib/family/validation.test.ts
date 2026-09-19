@@ -90,6 +90,34 @@ describe("collectFamilyDataIssues", () => {
 		]);
 	});
 
+	it("treats null as an absent optional field, as Rootsy emits it", () => {
+		const data = clone();
+		// biome-ignore lint/suspicious/noExplicitAny: shaping deliberately loose data
+		const member = (data.individuals as any)["@I1@"];
+		member.given_name = null;
+		member.surname = null;
+		member.sex = null;
+		member.birth = null;
+		member.death = { date: null };
+		// biome-ignore lint/suspicious/noExplicitAny: shaping deliberately loose data
+		(data.families as any)["@F1@"].wife = null;
+
+		expect(collectFamilyDataIssues(data)).toEqual([]);
+	});
+
+	it("still rejects null where a value is required", () => {
+		const data = clone();
+		// biome-ignore lint/suspicious/noExplicitAny: shaping deliberately bad data
+		(data.individuals as any)["@I1@"].name = null;
+
+		expect(collectFamilyDataIssues(data)).toEqual([
+			{
+				path: 'individuals["@I1@"].name',
+				message: "expected a string, got null",
+			},
+		]);
+	});
+
 	it("collects every problem, not just the first", () => {
 		const data = clone();
 		// biome-ignore lint/suspicious/noExplicitAny: shaping deliberately bad data
@@ -127,18 +155,34 @@ describe("assertFamilyData", () => {
 		);
 	});
 
-	it("caps the list and counts the rest", () => {
+	it("reports the same problem once, with a count and an example", () => {
 		const individuals: Record<string, unknown> = {};
 		for (let index = 0; index < 12; index++) {
-			individuals[`@I${index}@`] = "not an individual";
+			individuals[`@I${index}@`] = {
+				id: `@I${index}@`,
+				name: "Senza /Cognome/",
+				surname: null,
+				child_of_families: [],
+				spouse_in_families: [],
+			};
+		}
+		// Only this one is broken: null surnames are fine.
+		// biome-ignore lint/suspicious/noExplicitAny: shaping deliberately bad data
+		(individuals["@I3@"] as any).surname = 7;
+		for (const index of [4, 5]) {
+			// biome-ignore lint/suspicious/noExplicitAny: shaping deliberately bad data
+			(individuals[`@I${index}@`] as any).name = 7;
 		}
 
 		expect(() =>
 			assertFamilyData({ individuals, families: {} }, "big.json"),
-		).toThrow(/\(12 problems\)/);
-		expect(() =>
-			assertFamilyData({ individuals, families: {} }, "big.json"),
-		).toThrow(/\n {2}\.\.\.and 2 more$/);
+		).toThrow(
+			[
+				"Invalid family tree data in big.json (3 problems):",
+				'  individuals["@I3@"].surname: expected a string, got a number',
+				'  individuals[*].name: expected a string, got a number (2 times, e.g. individuals["@I4@"].name)',
+			].join("\n"),
+		);
 	});
 
 	it("never repeats the offending value", () => {

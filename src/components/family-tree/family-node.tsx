@@ -8,7 +8,7 @@ import {
 } from "lib/family/layout";
 
 /** Emoji for the GEDCOM `SEX` value; unknown sex gets a neutral marker. */
-function sexIcon(sex: string | undefined): string {
+function sexIcon(sex: string | null | undefined): string {
 	if (sex === "M") return "♂️";
 	if (sex === "F") return "♀️";
 
