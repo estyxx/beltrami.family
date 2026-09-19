@@ -107,7 +107,7 @@ describe("buildGraph", () => {
 		const nodes = personNodes(threeGenerations());
 		const generation = (id: string) => {
 			const node = nodes.find((item) => item.id === id);
-			if (!node || node.type !== "person") throw new Error(`missing ${id}`);
+			if (node?.type !== "person") throw new Error(`missing ${id}`);
 			return node.data.generation;
 		};
 

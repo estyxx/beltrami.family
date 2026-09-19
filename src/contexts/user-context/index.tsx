@@ -1,9 +1,9 @@
 "use client";
-import useFirebaseAuth, { type UserData } from "lib/auth";
 
 import type { UserCredential } from "firebase/auth";
-import { type FC, createContext, useContext } from "react";
+import useFirebaseAuth, { type UserData } from "lib/auth";
 import type { ReactNode } from "react";
+import { createContext, type FC, useContext } from "react";
 
 type Context = {
 	user: null | UserData;

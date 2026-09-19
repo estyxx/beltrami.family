@@ -2,7 +2,7 @@
 
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { type ServiceAccount, cert, initializeApp } from "firebase-admin/app";
+import { cert, initializeApp, type ServiceAccount } from "firebase-admin/app";
 import { type Firestore, getFirestore } from "firebase-admin/firestore";
 
 /**

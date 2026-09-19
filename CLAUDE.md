@@ -20,10 +20,10 @@ committed to the repo, and never bundled into the public pages.
 
 ## Stack
 
-- Next.js (App Router, `src/app`), React 19, TypeScript strict
-- Tailwind CSS, `clsx` for conditional classes
+- Next.js (App Router, `src/app`, Turbopack), React 19, TypeScript strict
+- Tailwind CSS 4, configured in `src/app/globals.css`; `clsx` for conditionals
 - `@xyflow/react` (React Flow v12) for the tree canvas
-- Firebase: Auth (email/password) and Firestore, client SDK v11 modular API
+- Firebase: Auth (email/password) and Firestore, client SDK v12 modular API
 - `firebase-admin` only in `scripts/` (Node, never shipped to the browser)
 - Biome for lint and format (tabs, double quotes)
 - lefthook for git hooks (installed on `pnpm install` via `prepare`)
@@ -199,7 +199,7 @@ GEDCOM semantics to respect:
 2. Consolidate types; write the `FamilyData → nodes/edges` transform with
    tests; implement a real layout. (done: `src/lib/family/layout.ts`)
 3. Dependency upgrades (Tailwind 4, Biome 2, latest Next/React/xyflow),
-   one major at a time, each in its own PR, build green after each.
+   one major at a time, each in its own PR, build green after each. (done)
 4. Public site: home, cats demo tree with illustration and animation, GEDCOM
    explainer. Private site remains behind auth.
 5. Person detail panel, search, pedigree/descendant views, accessibility pass.

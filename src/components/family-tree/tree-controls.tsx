@@ -52,7 +52,7 @@ export const TreeControls = ({
 					value={query}
 					onChange={(event) => setQuery(event.target.value)}
 					placeholder="Cerca una persona"
-					className="w-full rounded border border-gray-300 px-2 py-1 text-sm"
+					className="w-full rounded-sm border border-gray-300 px-2 py-1 text-sm"
 				/>
 			</label>
 
@@ -66,7 +66,7 @@ export const TreeControls = ({
 									onFocus(member.id);
 									setQuery("");
 								}}
-								className="w-full rounded px-2 py-1 text-left text-sm text-gray-700 hover:bg-gray-100"
+								className="w-full rounded-sm px-2 py-1 text-left text-sm text-gray-700 hover:bg-gray-100"
 							>
 								{formatName(member) || "Senza nome"}
 								<span className="ml-1 text-xs text-gray-500">
@@ -122,7 +122,7 @@ const Generations = ({ label, value, onChange }: GenerationsProps) => (
 		<select
 			value={value}
 			onChange={(event) => onChange(Number(event.target.value))}
-			className="rounded border border-gray-300 px-2 py-1"
+			className="rounded-sm border border-gray-300 px-2 py-1"
 		>
 			{GENERATION_CHOICES.map((choice) => (
 				<option key={choice} value={choice}>

@@ -18,7 +18,12 @@ export async function readLocalFamilyData(): Promise<FamilyData> {
 		throw new Error("No local family data file is configured");
 	}
 
-	const absolutePath = path.resolve(process.cwd(), localFamilyDataPath);
+	// The path is configuration, not an import: tell Turbopack not to trace
+	// the whole project trying to resolve it into the server bundle.
+	const absolutePath = path.resolve(
+		/* turbopackIgnore: true */ process.cwd(),
+		localFamilyDataPath,
+	);
 	let data: unknown;
 
 	try {
