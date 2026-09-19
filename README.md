@@ -14,6 +14,7 @@ flowchart LR
     MH[MyHeritage export<br/>.ged] --> R[Rootsy<br/>Python parser]
     R --> J[beltrami.json]
     J -->|pnpm upload-tree| FS[(Firestore<br/>familyTrees/beltrami)]
+    J -.->|NEXT_PUBLIC_LOCAL_FAMILY_DATA_PATH<br/>local development| APP
     FS --> APP[Next.js app]
     AUTH[Firebase Auth] --> APP
     APP --> RF[React Flow canvas]
@@ -51,6 +52,7 @@ Environment variables (`.env.local`):
 | `NEXT_PUBLIC_FIREBASE_PUBLIC_API_KEY` | Firebase web API key |
 | `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN` | Firebase auth domain |
 | `NEXT_PUBLIC_FIREBASE_PROJECT_ID` | Firebase project id |
+| `NEXT_PUBLIC_LOCAL_FAMILY_DATA_PATH` | Optional. Path to a Rootsy JSON export to read instead of Firestore |
 
 These are public by design (Firebase client config); access to data is
 enforced by Firestore security rules and Authentication, not by hiding the key.
@@ -93,6 +95,24 @@ enforced by Firestore security rules and Authentication, not by hiding the key.
 The document id is derived from the file name, so `beltrami.json` becomes
 `familyTrees/beltrami`, which is what the app reads.
 
+### Reading a local export instead
+
+To work against a fresh export without uploading it, point the app at the file:
+
+```sh
+# .env.local
+NEXT_PUBLIC_LOCAL_FAMILY_DATA_PATH=./data/beltrami.json
+```
+
+The tree then comes from that file and Firestore is not touched. The file is
+read on the server and served by `/api/family-tree`, so it is never bundled
+into the pages; the route is disabled whenever the variable is unset, which is
+how deployments run. Signing in is still required, as the tree page is behind
+the protected layout either way.
+
+Keep exports in `data/`, which is git-ignored: family data must not be
+committed.
+
 ## Data shape
 
 The types live in `src/lib/family/types.ts` and are shared by the app and the
@@ -132,7 +152,8 @@ src/app            routes and layouts (App Router)
 src/components     UI components, one folder each
 src/contexts       auth context
 src/hooks          data-fetching hooks
-src/lib            Firebase auth and Firestore access, family domain types
+src/lib            Firebase auth and Firestore access, local export reader,
+                   family domain types and validation
 src/helpers        config and pure helpers
 scripts            Node tooling (Firestore upload, uses firebase-admin)
 ```
