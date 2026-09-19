@@ -1,7 +1,9 @@
 "use client";
 import { useAuth } from "contexts/user-context";
+import { usesLocalFamilyData } from "helpers/config";
 import type { FamilyData } from "lib/family/types";
 import { getFamilyTreeData } from "lib/firestore";
+import { getLocalFamilyTreeData } from "lib/local-tree/client";
 import { useEffect, useState } from "react";
 
 export function useFamilyTree() {
@@ -21,7 +23,10 @@ export function useFamilyTree() {
 			try {
 				setLoading(true);
 				setError(null);
-				const data = await getFamilyTreeData();
+				// A local Rootsy export wins over Firestore when one is configured.
+				const data = usesLocalFamilyData
+					? await getLocalFamilyTreeData()
+					: await getFamilyTreeData();
 				setFamilyData(data);
 			} catch (err) {
 				setError(

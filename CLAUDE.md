@@ -5,7 +5,8 @@ Guidance for AI agents working in this repository. Read it fully before touching
 A private, password-protected website that renders the Beltrami family tree.
 The tree data is a GEDCOM export from MyHeritage, parsed into JSON by the
 sibling project **Rootsy** (Python), uploaded to Firestore, and drawn in the
-browser with React Flow.
+browser with React Flow. Setting `NEXT_PUBLIC_LOCAL_FAMILY_DATA_PATH` reads a
+Rootsy export from disk instead, for working without an upload.
 
 Two audiences are planned:
 
@@ -53,9 +54,11 @@ src/
     family-tree/       FamilyTree canvas + FamilyNode custom node
     protected-layout/  createProtectedLayout HOC (redirects unauthenticated users)
   contexts/            React contexts (user-context = auth)
-  hooks/               custom hooks (use-family-tree fetches from Firestore)
+  hooks/               custom hooks (use-family-tree picks the data source)
   lib/                 side-effectful modules: auth (Firebase), firestore
-    family/            domain types shared by the app and scripts/
+    family/            domain types shared by the app and scripts/, validation
+    local-tree/        local JSON export: server reads the file, client fetches
+                       it from /api/family-tree
   helpers/             pure helpers and config (env var access lives here only)
 scripts/               Node-only tooling (Firestore upload)
 public/                static assets
@@ -74,8 +77,9 @@ Path aliases are configured with `baseUrl: src`, so imports look like
 - Prefer `type` over `interface` except when declaration merging is needed.
 - Export named symbols. Default exports only where Next.js requires them
   (`page.tsx`, `layout.tsx`).
-- Runtime data from Firestore is untrusted: validate with a type guard (see
-  `isValidFamilyData`) rather than casting. If validation grows, move to `zod`.
+- Runtime data is untrusted, whatever the source: validate with a type guard
+  (`isValidFamilyData` in `src/lib/family/validation.ts`) rather than casting.
+  If validation grows, move to `zod`.
 - The domain types (`FamilyMember`, `FamilyData`) live in
   `src/lib/family/types.ts` and nowhere else. App code imports them as
   `lib/family/types`; `scripts/` uses a relative path, because the path
